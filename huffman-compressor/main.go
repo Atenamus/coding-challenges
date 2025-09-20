@@ -17,9 +17,9 @@ func isEscapeChar(r rune) bool {
 }
 
 func main() {
-	file, err := os.Open("example.txt")
+	file, err := os.Open("test.txt")
 	freq := make(map[string]int)
-	nodes := make([]HuffLeafNode, 1)
+	nodes := []HuffLeafNode{}
 	if err != nil {
 		log.Fatal(err)
 	}
