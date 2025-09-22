@@ -1,5 +1,7 @@
 package main
 
+type HuffmanCodes map[string]string
+
 type HuffBaseNode interface {
 	IsLeaf() bool
 	Freq() int
@@ -57,4 +59,37 @@ func (n *HuffInternalNode) Left() HuffBaseNode {
 
 func (n *HuffInternalNode) Right() HuffBaseNode {
 	return n.right
+}
+
+func NewHuffmanCodesTable() HuffmanCodes {
+	return make(HuffmanCodes)
+}
+
+func (codes HuffmanCodes) GetCode(char string) (string, bool) {
+	code, exists := codes[char]
+	return code, exists
+}
+
+func (n *HuffInternalNode) GenerateHuffmanCodes() HuffmanCodes {
+	codes := NewHuffmanCodesTable()
+	traverse(n, "", codes)
+	return codes
+}
+
+func traverse(node HuffBaseNode, currentCode string, codes HuffmanCodes) {
+	if node == nil {
+		return
+	}
+
+	if node.IsLeaf() {
+		if leaf, ok := node.(*HuffLeafNode); ok {
+			codes[leaf.Char()] = currentCode
+		}
+		return
+	}
+
+	if internal, ok := node.(*HuffInternalNode); ok {
+		traverse(internal.Left(), currentCode+"0", codes)
+		traverse(internal.Right(), currentCode+"1", codes)
+	}
 }

@@ -1,57 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"container/heap"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"sort"
+
+	"github.com/olekukonko/tablewriter"
 )
-
-func PrintTree(node HuffBaseNode, prefix string, isLast bool) {
-	if node == nil {
-		return
-	}
-
-	// Choose the appropriate connector
-	connector := "├── "
-	if isLast {
-		connector = "└── "
-	}
-
-	if node.IsLeaf() {
-		leaf := node.(*HuffLeafNode)
-		// Display character with frequency, handle special characters
-		char := leaf.Char()
-		switch char {
-		case " ":
-			char = "SPACE"
-		case "\n":
-			char = "\\n"
-		case "\t":
-			char = "\\t"
-		case "\r":
-			char = "\\r"
-		}
-		fmt.Printf("%s%s'%s' (freq: %d)\n", prefix, connector, char, leaf.Freq())
-	} else {
-		internal := node.(*HuffInternalNode)
-		fmt.Printf("%s%sInternal (freq: %d)\n", prefix, connector, internal.Freq())
-
-		// Prepare prefix for children
-		extension := "│   "
-		if isLast {
-			extension = "    "
-		}
-		newPrefix := prefix + extension
-
-		// Print children - left first, then right
-		PrintTree(internal.Left(), newPrefix, false)
-		PrintTree(internal.Right(), newPrefix, true)
-	}
-}
 
 func isEscapeChar(r rune) bool {
 	switch r {
@@ -61,31 +17,53 @@ func isEscapeChar(r rune) bool {
 	return false
 }
 
+func renderTable(codes HuffmanCodes) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.Header("Char", "Freq")
+	keys := []string{}
+	for char := range codes {
+		keys = append(keys, char)
+	}
+	for _, val := range keys {
+		char := val
+		if char == " " {
+			char = "SPACE"
+		}
+		table.Append([]string{char, codes[val]})
+	}
+	table.Render()
+}
+
+func readFile(path string) (error, string) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("File does not exist"), ""
+	}
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("Eroor reading file : %v", err), ""
+	}
+	return nil, string(text)
+}
+
 func main() {
-	file, err := os.Open("test.txt")
 	freq := make(map[string]int)
 	nodes := []HuffBaseNode{}
 	pq := &PriorityQueue{}
 
 	heap.Init(pq)
 
+	err, text := readFile("example.txt")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
-	defer file.Close()
-	reader := bufio.NewReader(file)
-	for {
-		r, _, err := reader.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			log.Fatalf("Error reading rune: %v", err)
-		}
-		if !isEscapeChar(r) {
-			freq[string(r)]++
+
+	for _, char := range text {
+		if !isEscapeChar(char) {
+			freq[string(char)]++
 		}
 	}
+	
+	fmt.Println(freq)
 
 	for key, value := range freq {
 		nodes = append(nodes, NewLeafNode(key, value))
@@ -104,5 +82,10 @@ func main() {
 	}
 
 	root := pq.Pop()
-	PrintTree(root.(HuffBaseNode), "", true)
+	codes := NewHuffmanCodesTable()
+
+	if root, ok := root.(*HuffInternalNode); ok {
+		codes = root.GenerateHuffmanCodes()
+	}
+	renderTable(codes)
 }
