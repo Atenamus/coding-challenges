@@ -1,8 +1,6 @@
-package main
+package huffman
 
 import "container/heap"
-
-type PriorityQueue []HuffBaseNode
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 

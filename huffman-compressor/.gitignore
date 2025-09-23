@@ -1,0 +1,4 @@
+*.huff
+/bin/*
+*.exe
+.vscode

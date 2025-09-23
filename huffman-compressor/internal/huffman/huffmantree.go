@@ -1,18 +1,11 @@
-package main
+package huffman
 
-type HuffmanCodes map[string]string
+import (
+	"container/heap"
+	"sort"
+)
 
-type HuffBaseNode interface {
-	IsLeaf() bool
-	Freq() int
-}
-
-type HuffLeafNode struct {
-	char string
-	freq int
-}
-
-func NewLeafNode(c string, f int) *HuffLeafNode {
+func newLeafNode(c string, f int) *HuffLeafNode {
 	return &HuffLeafNode{
 		char: c,
 		freq: f,
@@ -37,7 +30,7 @@ type HuffInternalNode struct {
 	right HuffBaseNode
 }
 
-func NewInternalNode(f int, l HuffBaseNode, r HuffBaseNode) *HuffInternalNode {
+func newInternalNode(f int, l HuffBaseNode, r HuffBaseNode) *HuffInternalNode {
 	return &HuffInternalNode{
 		freq:  f,
 		left:  l,
@@ -61,17 +54,51 @@ func (n *HuffInternalNode) Right() HuffBaseNode {
 	return n.right
 }
 
-func NewHuffmanCodesTable() HuffmanCodes {
+func newHuffmanCodesTable() HuffmanCodes {
 	return make(HuffmanCodes)
 }
 
-func (codes HuffmanCodes) GetCode(char string) (string, bool) {
-	code, exists := codes[char]
-	return code, exists
+func generateFrequencyTable(text string) FrquencyTable {
+	freq := make(FrquencyTable)
+
+	for _, char := range text {
+		if !isEscapeChar(char) {
+			freq[string(char)]++
+		}
+	}
+
+	return freq
 }
 
-func (n *HuffInternalNode) GenerateHuffmanCodes() HuffmanCodes {
-	codes := NewHuffmanCodesTable()
+func buildHUffmanTree(freqTable FrquencyTable) *HuffInternalNode {
+	pq := &PriorityQueue{}
+	nodes := []HuffBaseNode{}
+
+	heap.Init(pq)
+
+	for key, value := range freqTable {
+		nodes = append(nodes, newLeafNode(key, value))
+	}
+
+	sort.SliceStable(nodes, func(i, j int) bool { return nodes[i].Freq() < nodes[j].Freq() })
+
+	for _, val := range nodes {
+		heap.Push(pq, val)
+	}
+
+	for pq.Len() > 1 {
+		l := pq.Pop()
+		r := pq.Pop()
+		pq.Push(newInternalNode(l.(HuffBaseNode).Freq()+r.(HuffBaseNode).Freq(), l.(HuffBaseNode), r.(HuffBaseNode)))
+	}
+
+	root := pq.Pop()
+
+	return root.(*HuffInternalNode)
+}
+
+func generateHuffmanCodes(n HuffBaseNode) HuffmanCodes {
+	codes := newHuffmanCodesTable()
 	traverse(n, "", codes)
 	return codes
 }
